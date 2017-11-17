@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
     /** Called when the user taps the Send button */
     public void sendMessage(View view) {
 
-        String server_url = "http://192.168.43.55/dbconfig.php";
+        String server_url = "http://localhost:8080/transfer.php";
 
         receiverId = (EditText) findViewById(R.id.editReceiverId);
         final String receiverIdStr = receiverId.getText().toString();
@@ -74,45 +74,73 @@ public class MainActivity extends AppCompatActivity {
         final String senderIdStr = senderId.getText().toString();
 
         amount = (EditText) findViewById(R.id.editAmount);
-        final String amountStr = senderId.getText().toString();
+        final String amountStr = amount.getText().toString();
+
+        //server_url += "?senderid=" + senderIdStr + "&receiverid=" + receiverIdStr + "&amount=" + amountStr;
+
+        //Toast.makeText(MainActivity.this,"senderid: " + senderIdStr,Toast.LENGTH_SHORT).show();
 
         builder = new AlertDialog.Builder(MainActivity.this);
 
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, server_url, new Response.Listener<String>() {
+        Response.Listener resListener = new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
+                //Toast.makeText(MainActivity.this,"RESPONSE: " + response,Toast.LENGTH_SHORT).show();
+
                 builder.setTitle("Server Response");
-                builder.setMessage("Response :"+response);
-                DialogInterface.OnClickListener onClickListener = new DialogInterface.OnClickListener() {
+                builder.setMessage(response);
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        // reset all the fields
+                    public void onClick(DialogInterface dialog, int which) {
                         receiverId.setText("");
                         senderId.setText("");
                         amount.setText("");
                     }
-                };
+                });
 
-                builder.setPositiveButton("OK", onClickListener);
+                AlertDialog alertDialog = builder.create();
+                alertDialog.show();
             }
-        }
-                , new Response.ErrorListener() {
+        };
+
+        Response.ErrorListener errListener = new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Toast.makeText(MainActivity.this,"some error found..." + error.toString(),Toast.LENGTH_SHORT).show();
+                //Toast.makeText(MainActivity.this, "ERROR: " + error.toString(), Toast.LENGTH_SHORT).show();
                 error.printStackTrace();
 
+                builder.setTitle("Transfer failed");
+                builder.setMessage(error.toString());
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        receiverId.setText("");
+                        senderId.setText("");
+                        amount.setText("");
+                    }
+                });
+
+                AlertDialog alertDialog = builder.create();
+                alertDialog.show();
+
             }
-        }){
+        };
+
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, server_url, resListener, errListener)
+         {
+
             @Override
             protected Map<String, String> getParams() throws AuthFailureError {
                 Map <String,String> Params = new HashMap<String, String>();
-                Params.put("Sender",senderIdStr);
-                Params.put("Receiver",receiverIdStr);
-                Params.put("Amount",amountStr);
+                Params.put("senderid",senderIdStr);
+                Params.put("receiverid",receiverIdStr);
+                Params.put("amount",amountStr);
                 return Params;
             }
+
         };
+
+        //Toast.makeText(MainActivity.this,"REQUEST: " + stringRequest.toString(),Toast.LENGTH_SHORT).show();
         Mysingleton.getInstance(MainActivity.this).addTorequestque(stringRequest);
 
         /*
